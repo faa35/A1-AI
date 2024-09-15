@@ -256,53 +256,72 @@ class VacuumPlanning(Problem):
         """ Given a state, return True if state is a goal state or False, otherwise """
         return self.env.some_things_at(state, Dirt)
 
-    def path_cost(self, curNode, state1, action, state2):
-        """computes accumulated path cost so far to state2. Returns the cost of a solution path that arrives at state2 from
-        state1 via action, assuming it costs c to get up to state1. For our problem state is (x, y) coordinate pair.
-        Rotation of the agent costs 3 times of basic cost unit for each 90' rotation plus the basic cost. """
-        # print("path_cost: to be done by students")
-        cost = curNode.path_cost
-        if (self.env.costFunc == costFunctions[0]):  # basic stepCount cost
-            cost = cost + 1
-        elif (self.env.costFunc == costFunctions[1]):  # stepCount plus turn cost
-            print("path_cost: For students to implement")
-        elif (self.env.costFunc == costFunctions[2]):  # cost function to encourage staying left of grid
-            print("path_cost: For students to implement")
-        else:  # means self.env.costFunc == costFunctions[3]. cost function to encourage stay at the top half of the grid
-            print("path_cost: For students to implement")
+def path_cost(self, curNode, state1, action, state2):
+    """Computes accumulated path cost so far to state2."""
+    cost = curNode.path_cost
+    if self.env.costFunc == costFunctions[0]:  # 'Step' cost
+        cost += 1
+    elif self.env.costFunc == costFunctions[1]:  # 'StepTurn' cost
+        if curNode.parent is not None:
+            prev_action = curNode.action
+        else:
+            prev_action = self.agent.direction
+        turn_cost = self.computeTurnCost(prev_action, action)
+        cost += 1 + turn_cost
+    elif self.env.costFunc == costFunctions[2]:  # 'StayLeft'
+        x, _ = state2
+        if x < self.env.width / 2:
+            cost += 1  # Prefer left half
+        else:
+            cost += 2  # Penalize right half
+    else:  # 'StayUp'
+        _, y = state2
+        if y < self.env.height / 2:
+            cost += 1  # Prefer top half
+        else:
+            cost += 2  # Penalize bottom half
+    return cost
 
-        #print("Path-Cost: loc1: ", state1, ", loc2: ", state2, "= ", "curCost=", curNode.path_cost, "newCost=", cost)
-        return cost
 
-    def computeTurnCost(self, action1, action):
-        """computes turn cost as the number of 90' rotations away from current direction given by action1"""
-        print("computeTurnCost: For students to implement")
+def computeTurnCost(self, action1, action):
+    """Computes turn cost as the number of 90-degree rotations from action1 to action."""
+    direction_map = {'UP': 0, 'RIGHT': 90, 'DOWN': 180, 'LEFT': 270}
+    angle1 = direction_map.get(action1, 0)
+    angle2 = direction_map.get(action, 0)
+    angle_diff = abs(angle1 - angle2) % 360
+    num_turns = min(angle_diff // 90, (360 - angle_diff) // 90)
+    turn_cost = num_turns * 3
+    return turn_cost
 
-        return 0
 
-    def findMinManhattanDist(self, pos):
-        """Find a dirty room among all dirty rooms which has minimum Manhattan distance to pos
-        hint: use distance_manhattan() function in utils.py"""
-        print("findMinManhattanDist: For students to implement")
-        return 0
+def findMinManhattanDist(self, pos):
+    """Finds the minimum Manhattan distance to any dirty room from pos."""
+    min_dist = float('inf')
+    for dirt_pos in self.env.dirtyRooms:
+        dist = distance_manhattan(pos, dirt_pos)
+        if dist < min_dist:
+            min_dist = dist
+    return min_dist
 
-    def findMinEuclidDist(self, pos):
-        """Find a dirty room among all dirty rooms which has minimum Manhattan distance to pos
-                hint: use distance_manhattan() function in utils.py"""
-        print("findMinEuclidDist: For students to implement")
 
-        return 0
+def findMinEuclidDist(self, pos):
+    """Finds the minimum Euclidean distance to any dirty room from pos."""
+    min_dist = float('inf')
+    for dirt_pos in self.env.dirtyRooms:
+        dist = distance_euclid(pos, dirt_pos)
+        if dist < min_dist:
+            min_dist = dist
+    return min_dist
 
-    def h(self, node):
-        """ Return the heuristic value for a given state. For this problem use minimum Manhattan or Euclid
-        distance to a dirty room, among all the dirty rooms.
-        """
-        if self.env.args['heuristic'] == 'Manhattan':
-            heur = self.findMinManhattanDist(node.state)
-        else:  ## means Euclid distance
-            heur = self.findMinEuclidDist(node.state)
 
-        return heur
+def h(self, node):
+    """Returns the heuristic value for a given state."""
+    if self.env.args['heuristic'] == 'Manhattan':
+        heur = self.findMinManhattanDist(node.state)
+    else:  # 'Euclid'
+        heur = self.findMinEuclidDist(node.state)
+    return heur
+
 
 # ______________________________________________________________________________
 
@@ -312,46 +331,71 @@ class VacuumPlanning(Problem):
 
 def breadth_first_graph_search(problem):
     """[Figure 3.11]
-    Note that this function can be implemented in a
-    single line as below:
-    return graph_search(problem, FIFOQueue())
+    Search the shallowest nodes in the search tree first.
     """
-    print("breadth_first_graph_search: For students to implement")
+    node = Node(problem.initial)
+    if problem.goal_test(node.state):
+        return node, set()
+    frontier = deque([node])  # FIFO queue for BFS
+    explored = set()
+    explored.add(node.state)
+    while frontier:
+        node = frontier.popleft()
+        for child in node.expand(problem):
+            if child.state not in explored and child not in frontier:
+                if problem.goal_test(child.state):
+                    return child, explored
+                frontier.append(child)
+                explored.add(child.state)
     return None, None
+
 
 
 def depth_first_graph_search(problem):
-    """
-    [Figure 3.7]
+    """[Figure 3.7]
     Search the deepest nodes in the search tree first.
-    Search through the successors of a problem to find a goal.
-    The argument frontier should be an empty queue.
-    Does not get trapped by loops.
-    If two paths reach a state, only use the first one.
     """
-    frontier = [Node(problem.initial)]  # Stack
-
-    print("depth_first_graph_search: For students to implement")
-
-
+    node = Node(problem.initial)
+    if problem.goal_test(node.state):
+        return node, set()
+    frontier = [node]  # Stack for DFS
+    explored = set()
+    explored.add(node.state)
+    while frontier:
+        node = frontier.pop()
+        for child in reversed(node.expand(problem)):
+            if child.state not in explored and child not in frontier:
+                if problem.goal_test(child.state):
+                    return child, explored
+                frontier.append(child)
+                explored.add(child.state)
     return None, None
+
 
 
 def best_first_graph_search(problem, f=None):
-    """Search the nodes with the lowest f scores first.
-    You specify the function f(node) that you want to minimize; for example,
-    if f is a heuristic estimate to the goal, then we have greedy best
-    first search; if f is node's depth then we have breadth-first search.
-    There is a subtlety: the line "f = memoize(f, 'f')" means that the f
-    values will be cached on the nodes as they are computed. So after doing
-    a best first search you can examine the f values of the path returned.
-    For f=None, the problem's h function (default heuristic function) is used"""
+    """Search the nodes with the lowest f scores first."""
     f = memoize(f or problem.h, 'f')
     node = Node(problem.initial)
     frontier = PriorityQueue('min', f)
-    print("best_first_graph_search: For students to implement")
-
+    frontier.append(node)
+    explored = set()
+    while frontier:
+        node = frontier.pop()
+        if problem.goal_test(node.state):
+            return node, explored
+        explored.add(node.state)
+        for child in node.expand(problem):
+            if child.state not in explored and child not in frontier:
+                frontier.append(child)
+            elif child in frontier:
+                # Check if child has a better f value
+                existing_node = frontier.get_node(child)
+                if f(child) < f(existing_node):
+                    frontier.remove(existing_node)
+                    frontier.append(child)
     return None, None
+
 
 
 def reflexAgentSearch(problem):
