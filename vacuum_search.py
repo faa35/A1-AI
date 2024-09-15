@@ -120,7 +120,7 @@ class Gui(VacuumEnvironment):
             self.agent.direction = 'UP'
             if len(self.agents) > 0:
                 self.delete_thing(self.agents[0])
-            self.add_thing(Agent(), (xi, yi))
+            self.add_thing(self.agent, (xi, yi))        # Use self.agent instead of creating a new Agent()
             self.buttons[yi][xi].config(bg='white', text=agent_label(self.agent), state='normal')
         
 
@@ -314,13 +314,14 @@ class Gui(VacuumEnvironment):
             self.buttons[y][x].config(bg='orange')
 
     def add_agent(self, agt, loc):
-        """add an agent to the GUI"""
-        self.add_thing(Agent(), loc)
+        """Add an agent to the GUI with a valid program"""
+        self.add_thing(agt, loc)
         assert(len(self.agents) == 1)
         # Place the agent at the provided location.
         lbl = agent_label(agt)
         self.buttons[loc[1]][loc[0]].config(bg='white', text=lbl, state='normal')
         self.agent = agt
+
 
     def toggle_element(self, button):
         """toggle the element type on the GUI when a room is clicked"""
@@ -479,7 +480,9 @@ Our search Agents ignore environment percepts for planning. The planning is done
  data from environment at the beginning. The environment is fully observable
  """
 def XYSearchAgentProgram(percept):
-    pass
+    # Since the agent's actions are planned elsewhere, we can return 'NoOp'
+    return 'NoOp'
+
 
 
 class XYSearchAgent(Agent):
