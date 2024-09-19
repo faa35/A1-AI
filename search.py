@@ -260,38 +260,52 @@ class VacuumPlanning(Problem):
         """computes accumulated path cost so far to state2. Returns the cost of a solution path that arrives at state2 from
         state1 via action, assuming it costs c to get up to state1. For our problem state is (x, y) coordinate pair.
         Rotation of the agent costs 3 times of basic cost unit for each 90' rotation plus the basic cost. """
-        # print("path_cost: to be done by students")
         cost = curNode.path_cost
         if (self.env.costFunc == costFunctions[0]):  # basic stepCount cost
             cost = cost + 1
         elif (self.env.costFunc == costFunctions[1]):  # stepCount plus turn cost
-            print("path_cost: For students to implement")
+            prev_action = curNode.action  # Action that got us to state1
+            turn_cost = self.computeTurnCost(prev_action, action)
+            cost = cost + 1 + turn_cost
         elif (self.env.costFunc == costFunctions[2]):  # cost function to encourage staying left of grid
-            print("path_cost: For students to implement")
+            x, y = state2
+            cost = cost + 1 + x
         else:  # means self.env.costFunc == costFunctions[3]. cost function to encourage stay at the top half of the grid
-            print("path_cost: For students to implement")
-
-        #print("Path-Cost: loc1: ", state1, ", loc2: ", state2, "= ", "curCost=", curNode.path_cost, "newCost=", cost)
+            x, y = state2
+            cost = cost + 1 + y
         return cost
 
-    def computeTurnCost(self, action1, action):
+    def computeTurnCost(self, action1, action2):
         """computes turn cost as the number of 90' rotations away from current direction given by action1"""
-        print("computeTurnCost: For students to implement")
-
-        return 0
+        directions = ['UP', 'RIGHT', 'DOWN', 'LEFT']
+        if action1 is None:
+            # Previous action is None, use agent's initial direction
+            action1 = self.agent.direction
+        idx1 = directions.index(action1)
+        idx2 = directions.index(action2)
+        diff = abs(idx1 - idx2)
+        if diff > 2:
+            diff = 4 - diff
+        turn_cost = diff * 3  # Each 90-degree turn costs 3
+        return turn_cost
 
     def findMinManhattanDist(self, pos):
-        """Find a dirty room among all dirty rooms which has minimum Manhattan distance to pos
-        hint: use distance_manhattan() function in utils.py"""
-        print("findMinManhattanDist: For students to implement")
-        return 0
+        """Find a dirty room among all dirty rooms which has minimum Manhattan distance to pos"""
+        min_dist = float('inf')
+        for dirt_pos in self.env.dirtyRooms:
+            dist = distance_manhattan(pos, dirt_pos)
+            if dist < min_dist:
+                min_dist = dist
+        return min_dist
 
     def findMinEuclidDist(self, pos):
-        """Find a dirty room among all dirty rooms which has minimum Manhattan distance to pos
-                hint: use distance_manhattan() function in utils.py"""
-        print("findMinEuclidDist: For students to implement")
-
-        return 0
+        """Find a dirty room among all dirty rooms which has minimum Euclidean distance to pos"""
+        min_dist = float('inf')
+        for dirt_pos in self.env.dirtyRooms:
+            dist = distance_euclid(pos, dirt_pos)
+            if dist < min_dist:
+                min_dist = dist
+        return min_dist
 
     def h(self, node):
         """ Return the heuristic value for a given state. For this problem use minimum Manhattan or Euclid
@@ -311,30 +325,43 @@ class VacuumPlanning(Problem):
 # Uninformed Search algorithms
 
 def breadth_first_graph_search(problem):
-    """[Figure 3.11]
-    Note that this function can be implemented in a
-    single line as below:
-    return graph_search(problem, FIFOQueue())
-    """
-    print("breadth_first_graph_search: For students to implement")
-    return None, None
+    """Breadth-first graph search."""
+    node = Node(problem.initial)
+    if problem.goal_test(node.state):
+        return node, set()
+    frontier = deque([node])  # FIFO queue
+    explored = set()
+    explored_states = set()
+    while frontier:
+        node = frontier.popleft()
+        if problem.goal_test(node.state):
+            return node, explored_states
+        explored.add(tuple(node.state))
+        explored_states.add(tuple(node.state))
+        for child in node.expand(problem):
+            if tuple(child.state) not in explored and child.state not in [n.state for n in frontier]:
+                frontier.append(child)
+    return None, explored_states
 
 
 def depth_first_graph_search(problem):
-    """
-    [Figure 3.7]
-    Search the deepest nodes in the search tree first.
-    Search through the successors of a problem to find a goal.
-    The argument frontier should be an empty queue.
-    Does not get trapped by loops.
-    If two paths reach a state, only use the first one.
-    """
-    frontier = [Node(problem.initial)]  # Stack
-
-    print("depth_first_graph_search: For students to implement")
-
-
-    return None, None
+    """Depth-first graph search."""
+    node = Node(problem.initial)
+    if problem.goal_test(node.state):
+        return node, set()
+    frontier = [node]  # Stack
+    explored = set()
+    explored_states = set()
+    while frontier:
+        node = frontier.pop()
+        if problem.goal_test(node.state):
+            return node, explored_states
+        explored.add(tuple(node.state))
+        explored_states.add(tuple(node.state))
+        for child in reversed(node.expand(problem)):
+            if tuple(child.state) not in explored and child.state not in [n.state for n in frontier]:
+                frontier.append(child)
+    return None, explored_states
 
 
 def best_first_graph_search(problem, f=None):
@@ -349,9 +376,30 @@ def best_first_graph_search(problem, f=None):
     f = memoize(f or problem.h, 'f')
     node = Node(problem.initial)
     frontier = PriorityQueue('min', f)
-    print("best_first_graph_search: For students to implement")
-
-    return None, None
+    frontier.append(node)
+    explored = set()
+    explored_states = set()
+    frontier_states = {}
+    frontier_states[tuple(node.state)] = node
+    while frontier:
+        node = frontier.pop()
+        del frontier_states[tuple(node.state)]
+        if problem.goal_test(node.state):
+            return node, explored_states
+        explored.add(tuple(node.state))
+        explored_states.add(tuple(node.state))
+        for child in node.expand(problem):
+            state = tuple(child.state)
+            if state not in explored and state not in frontier_states:
+                frontier.append(child)
+                frontier_states[state] = child
+            elif state in frontier_states:
+                incumbent = frontier_states[state]
+                if f(child) < f(incumbent):
+                    del frontier[incumbent]
+                    frontier.append(child)
+                    frontier_states[state] = child
+    return None, explored_states
 
 
 def reflexAgentSearch(problem):
@@ -388,7 +436,3 @@ def astar_search(problem, h=None):
     else in your Problem subclass."""
     h = memoize(h or problem.h, 'h')
     return best_first_graph_search(problem, lambda n: n.path_cost + h(n))
-
-# ______________________________________________________________________________
-# ______________________________________________________________________________
-
