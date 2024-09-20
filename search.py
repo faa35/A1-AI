@@ -302,7 +302,7 @@ class VacuumPlanning(Problem):
         """Find a dirty room among all dirty rooms which has minimum Euclidean distance to pos"""
         min_dist = float('inf')
         for dirt_pos in self.env.dirtyRooms:
-            dist = distance_euclid(pos, dirt_pos)
+            dist = distance_squared(pos, dirt_pos)
             if dist < min_dist:
                 min_dist = dist
         return min_dist
@@ -328,40 +328,46 @@ def breadth_first_graph_search(problem):
     """Breadth-first graph search."""
     node = Node(problem.initial)
     if problem.goal_test(node.state):
-        return node, set()
-    frontier = deque([node])  # FIFO queue
+        return node, None
+    frontier = deque([node])  # FIFO queue with node as the first element
     explored = set()
-    explored_states = set()
+    # explored.add(tuple(node.state))  # Explored set initialized with initial state
+    # explored_states = set()
     while frontier:
         node = frontier.popleft()
-        if problem.goal_test(node.state):
-            return node, explored_states
         explored.add(tuple(node.state))
-        explored_states.add(tuple(node.state))
+
         for child in node.expand(problem):
-            if tuple(child.state) not in explored and child.state not in [n.state for n in frontier]:
+            s = child.state
+            if problem.goal_test(s):
+                return child, explored
+            if tuple(s) not in explored:
+                # explored_states.add(tuple(s))
                 frontier.append(child)
-    return None, explored_states
+    # return None, explored_states
+    return None, None
+#    return None, None
+
 
 
 def depth_first_graph_search(problem):
     """Depth-first graph search."""
     node = Node(problem.initial)
     if problem.goal_test(node.state):
-        return node, set()
+        return node, None
     frontier = [node]  # Stack
     explored = set()
-    explored_states = set()
     while frontier:
         node = frontier.pop()
         if problem.goal_test(node.state):
-            return node, explored_states
+            return node, explored
         explored.add(tuple(node.state))
-        explored_states.add(tuple(node.state))
-        for child in reversed(node.expand(problem)):
-            if tuple(child.state) not in explored and child.state not in [n.state for n in frontier]:
+        for child in node.expand(problem):
+            if tuple(child.state) not in explored and child not in frontier:
+                if problem.goal_test(child.state):
+                   return child, explored
                 frontier.append(child)
-    return None, explored_states
+    return None, None
 
 
 def best_first_graph_search(problem, f=None):
