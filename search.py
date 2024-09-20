@@ -331,8 +331,6 @@ def breadth_first_graph_search(problem):
         return node, None
     frontier = deque([node])  # FIFO queue with node as the first element
     explored = set()
-    # explored.add(tuple(node.state))  # Explored set initialized with initial state
-    # explored_states = set()
     while frontier:
         node = frontier.popleft()
         explored.add(tuple(node.state))
@@ -342,11 +340,8 @@ def breadth_first_graph_search(problem):
             if problem.goal_test(s):
                 return child, explored
             if tuple(s) not in explored:
-                # explored_states.add(tuple(s))
                 frontier.append(child)
-    # return None, explored_states
     return None, None
-#    return None, None
 
 
 
