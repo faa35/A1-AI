@@ -1,0 +1,12 @@
+Algorithm,Path_Count,Explored_Count,Cost
+BFS,,,Step
+DFS,,,Step
+UCS,,,Step
+Greedy_Manhattan,,,Step
+A*_Manhattan,,,Step
+A*_Euclid,,,Step
+BFS,,,StepTurn
+DFS,,,StepTurn
+UCS,,,StepTurn
+Greedy_Euclid,,,StepTurn
+A*_Euclid,,,StepTurn
