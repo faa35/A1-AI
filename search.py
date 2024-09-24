@@ -302,7 +302,7 @@ class VacuumPlanning(Problem):
         """Find a dirty room among all dirty rooms which has minimum Euclidean distance to pos"""
         min_dist = float('inf')
         for dirt_pos in self.env.dirtyRooms:
-            dist = distance_squared(pos, dirt_pos)
+            dist = distance_squared(pos, dirt_pos) # updated instruction from email
             if dist < min_dist:
                 min_dist = dist
         return min_dist
